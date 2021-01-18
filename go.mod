@@ -1,4 +1,4 @@
-module github.com/tipper-api
+module github.com/yutaroyoshikawa/tipper-api
 
 go 1.15
 
