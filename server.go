@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"fmt"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -12,7 +13,7 @@ import (
 	"github.com/yutaroyoshikawa/tipper-api/graph/generated"
 )
 
-const defaultPort = ":80"
+const defaultPort = "8080"
 
 func main() {
 	port := os.Getenv("PORT")
@@ -53,5 +54,5 @@ func main() {
 
 	e.HideBanner = true
 
-	e.Logger.Fatal(e.Start(port))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
 }
