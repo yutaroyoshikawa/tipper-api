@@ -12,7 +12,7 @@ import (
 	"github.com/yutaroyoshikawa/tipper-api/graph/generated"
 )
 
-const defaultPort = ":8080"
+const defaultPort = ":80"
 
 func main() {
 	port := os.Getenv("PORT")
