@@ -2,27 +2,72 @@
 #
 # https://gqlgen.com/getting-started/
 
-type Todo {
-  id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
+enum UserType {
+  User
+  Artist
 }
 
 type User {
   id: ID!
+  userType: UserType!
   name: String!
+  imageIcon: String!
+  followArtists: [String!]
+  performances: [String!]
+}
+
+type Comment {
+  user: User!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Locate {
+  lat: Float!
+  lng: Float!
+}
+
+type Performance {
+  id: ID!
+  name: String!
+  description: String!
+  start: String!
+  tags: [String!]!
+  finish: String!
+  thumbnail: String
+  location: Locate!
+  address: String!
+  artist: User!
+  comments: [Comment!]!
+}              
+
+input NewUser {
+  name: String!
+  imageIcon: String
+}
+
+input LocateInput {
+  lat: Float!
+  lng: Float!
+}
+
+input NewPerformance {
+  name: String!
+  description: String!
+  start: String!
+  finish: String!
+  thumbnail: String
+  location: LocateInput!
+  address: String!
+  tags: [String!]
 }
 
 type Query {
-  todos: [Todo!]!
-}
-
-input NewTodo {
-  text: String!
-  userId: String!
+  user(id: ID): User
+  performance(id: ID): Performance
 }
 
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
+  createUser(input: NewUser!): User!
+  createPerformance(input: NewPerformance): Performance!
 }

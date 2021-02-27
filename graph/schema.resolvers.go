@@ -5,29 +5,86 @@ package graph
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 
 	"github.com/yutaroyoshikawa/tipper-api/graph/generated"
 	"github.com/yutaroyoshikawa/tipper-api/graph/model"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	todo := &model.Todo{
-		Text:   input.Text,
-		ID:     fmt.Sprintf("T%d", rand.Int()),
-		UserID: input.UserID,
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	user := &model.User{
+		ID:            "hoge",
+		UserType:      model.UserTypeUser,
+		Name:          input.Name,
+		ImageIcon:     *input.ImageIcon,
+		FollowArtists: []string{},
+		Performances:  []string{},
 	}
-	r.todos = append(r.todos, todo)
-	return todo, nil
+	return user, nil
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	return r.todos, nil
+func (r *mutationResolver) CreatePerformance(ctx context.Context, input *model.NewPerformance) (*model.Performance, error) {
+	performance := &model.Performance{
+		ID:          "hoge",
+		Name:        input.Name,
+		Description: input.Description,
+		Start:       input.Start,
+		Finish:      input.Finish,
+		Tags:        input.Tags,
+		Thumbnail:   input.Thumbnail,
+		Location:    (*model.Locate)(input.Location),
+		Address:     input.Address,
+		Artist: &model.User{
+			ID:            "hoge",
+			UserType:      model.UserTypeUser,
+			Name:          "hoge",
+			ImageIcon:     "huga",
+			FollowArtists: []string{},
+			Performances:  []string{},
+		},
+		Comments: []*model.Comment{},
+	}
+	return performance, nil
 }
 
-func (r *todoResolver) User(ctx context.Context, obj *model.Todo) (*model.User, error) {
-	return &model.User{ID: obj.UserID, Name: "user " + obj.UserID}, nil
+func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, error) {
+	user := &model.User{
+		ID:            *id,
+		UserType:      model.UserTypeUser,
+		Name:          "hoge",
+		ImageIcon:     "huga",
+		FollowArtists: []string{},
+		Performances:  []string{},
+	}
+	return user, nil
+}
+
+func (r *queryResolver) Performance(ctx context.Context, id *string) (*model.Performance, error) {
+	thumbnail := "hoge"
+
+	performance := &model.Performance{
+		ID:          *id,
+		Name:        "hoge",
+		Description: "huga",
+		Start:       "hoge",
+		Finish:      "huga",
+		Tags:        []string{},
+		Thumbnail:   &thumbnail,
+		Location: &model.Locate{
+			Lat: 0.0,
+			Lng: 0.0,
+		},
+		Address: "hoge",
+		Artist: &model.User{
+			ID:            *id,
+			UserType:      model.UserTypeUser,
+			Name:          "hoge",
+			ImageIcon:     "huga",
+			FollowArtists: []string{},
+			Performances:  []string{},
+		},
+		Comments: []*model.Comment{},
+	}
+	return performance, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -36,9 +93,5 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// Todo returns generated.TodoResolver implementation.
-func (r *Resolver) Todo() generated.TodoResolver { return &todoResolver{r} }
-
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type todoResolver struct{ *Resolver }
