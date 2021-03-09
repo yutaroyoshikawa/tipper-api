@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/labstack/echo"
@@ -21,6 +24,11 @@ func main() {
 		port = defaultPort
 	}
 
+	app, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
+
 	e := echo.New()
 
 	e.Use(middleware.Recover())
@@ -28,6 +36,27 @@ func main() {
 	e.Use(middleware.Gzip())
 
 	e.Use(middleware.CORS())
+
+	graphql := e.Group("/graphql")
+	graphql.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		Validator: func(idToken string, c echo.Context) (bool, error) {
+			auth, err := app.Auth(c.Request().Context())
+			if err != nil {
+				return false, err
+			}
+
+			log.Println(idToken)
+			token, err := auth.VerifyIDToken(c.Request().Context(), idToken)
+
+			if err != nil {
+				return false, err
+			}
+
+			c.Set("token", token)
+
+			return true, nil
+		},
+	}))
 
 	config := generated.Config{
 		Resolvers: &graph.Resolver{},
@@ -46,7 +75,8 @@ func main() {
 		return nil
 	})
 
-	e.POST("/graphql", func(c echo.Context) error {
+	graphql.POST("", func(c echo.Context) error {
+		c.Set("firebase", app)
 		graphqlHandler.ServeHTTP(c.Response(), c.Request())
 
 		return nil
