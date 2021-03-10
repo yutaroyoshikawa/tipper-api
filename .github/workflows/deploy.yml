@@ -16,7 +16,7 @@ jobs:
 
       - name: replace app.yml
         run: |
-          sed -i -e 's:/$FIREBASE_SERVICE_ACCOUNT/${{ secrets.FIREBASE_SERVICE_ACCOUNT }}:g' app.yml
+          sed -i -e 's|$FIREBASE_SERVICE_ACCOUNT|${{ secrets.FIREBASE_SERVICE_ACCOUNT }}|g' app.yml
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@master
