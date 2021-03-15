@@ -40,7 +40,7 @@ func main() {
 
 	graphql := e.Group("/graphql")
 	graphql.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
-		KeyLookup: "json:" + authHeaderName,
+		KeyLookup: "header:" + authHeaderName,
 		Skipper: func(c echo.Context) bool {
 			return c.Request().Header.Get(authHeaderName) == ""
 		},
