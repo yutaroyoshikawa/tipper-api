@@ -56,8 +56,6 @@ func main() {
 				return false, err
 			}
 
-			log.Println(token.UID)
-
 			c.Set("token", token)
 
 			return true, nil
