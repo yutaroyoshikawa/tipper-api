@@ -17,6 +17,7 @@ import (
 )
 
 const defaultPort = "8080"
+const authHeaderName = "Authorization"
 
 func main() {
 	port := os.Getenv("PORT")
@@ -39,18 +40,23 @@ func main() {
 
 	graphql := e.Group("/graphql")
 	graphql.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		KeyLookup: "json:" + authHeaderName,
+		Skipper: func(c echo.Context) bool {
+			return c.Request().Header.Get(authHeaderName) == ""
+		},
 		Validator: func(idToken string, c echo.Context) (bool, error) {
 			auth, err := app.Auth(c.Request().Context())
 			if err != nil {
 				return false, err
 			}
 
-			log.Println(idToken)
 			token, err := auth.VerifyIDToken(c.Request().Context(), idToken)
 
 			if err != nil {
 				return false, err
 			}
+
+			log.Println(token.UID)
 
 			c.Set("token", token)
 
