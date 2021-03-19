@@ -4,20 +4,21 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
-	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/yutaroyoshikawa/tipper-api/graph"
 	"github.com/yutaroyoshikawa/tipper-api/graph/generated"
+	"github.com/yutaroyoshikawa/tipper-api/infrastructure"
+	tipperMiddleware "github.com/yutaroyoshikawa/tipper-api/middleware"
+	"github.com/yutaroyoshikawa/tipper-api/service"
 )
 
 const defaultPort = "8080"
-const authHeaderName = "Authorization"
 
 func main() {
 	port := os.Getenv("PORT")
@@ -25,10 +26,7 @@ func main() {
 		port = defaultPort
 	}
 
-	app, err := firebase.NewApp(context.Background(), nil)
-	if err != nil {
-		log.Fatalf("error initializing app: %v\n", err)
-	}
+	firebaseApp := service.InitializeFirebase(context.Background())
 
 	e := echo.New()
 
@@ -39,49 +37,29 @@ func main() {
 	e.Use(middleware.CORS())
 
 	graphql := e.Group("/graphql")
-	graphql.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
-		KeyLookup: "header:" + authHeaderName,
-		Skipper: func(c echo.Context) bool {
-			return c.Request().Header.Get(authHeaderName) == ""
-		},
-		Validator: func(idToken string, c echo.Context) (bool, error) {
-			auth, err := app.Auth(c.Request().Context())
-			if err != nil {
-				return false, err
-			}
 
-			token, err := auth.VerifyIDToken(c.Request().Context(), idToken)
+	graphql.Use(tipperMiddleware.KeyAuth(firebaseApp))
 
-			if err != nil {
-				return false, nil
-			}
+	graphql.POST("", func(c echo.Context) error {
+		token := c.Get("token")
+		if token != nil {
+			log.Println(token.(*auth.Token))
+		}
+		config := generated.Config{
+			Resolvers: &graph.Resolver{
+				Database: infrastructure.NewDatabase(firebaseApp),
+			},
+		}
+		graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(config))
+		graphqlHandler.ServeHTTP(c.Response(), c.Request())
 
-			c.Set("token", token)
-
-			return true, nil
-		},
-	}))
-
-	config := generated.Config{
-		Resolvers: &graph.Resolver{},
-	}
-	graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(config))
-
-	e.GET("/health", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
+		return nil
 	})
 
 	e.GET("/", func(c echo.Context) error {
 		h := playground.Handler("GraphQL", "/graphql")
 
 		h.ServeHTTP(c.Response(), c.Request())
-
-		return nil
-	})
-
-	graphql.POST("", func(c echo.Context) error {
-		c.Set("firebase", app)
-		graphqlHandler.ServeHTTP(c.Response(), c.Request())
 
 		return nil
 	})
