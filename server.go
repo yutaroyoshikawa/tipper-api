@@ -53,7 +53,7 @@ func main() {
 			token, err := auth.VerifyIDToken(c.Request().Context(), idToken)
 
 			if err != nil {
-				return false, err
+				return false, nil
 			}
 
 			c.Set("token", token)
