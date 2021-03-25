@@ -5,22 +5,49 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/yutaroyoshikawa/tipper-api/domain"
 	"github.com/yutaroyoshikawa/tipper-api/graph/generated"
 	"github.com/yutaroyoshikawa/tipper-api/graph/model"
 )
 
-func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUserInput) (*model.User, error) {
+func (r *mutationResolver) UpdateUser(ctx context.Context, userUID string, input model.UpdateUserInput) (*string, error) {
+	err := r.Database.UpdateUser(input.ID, domain.UpdateUserInput{
+		Email:   nil,
+		IconUrl: input.ImageIcon,
+		Name:    input.Name,
+	})
 
+	if err != nil {
+		return nil, err
+	}
+
+	return &input.ID, nil
 }
 
-func (r *mutationResolver) UpdateUserID(ctx context.Context, input model.UpdateUserIDInput) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) UpdateUserID(ctx context.Context, input model.UpdateUserIDInput) (*string, error) {
+	user, err := r.Database.GetUserByUserID(input.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if user != nil {
+		return nil, errors.New("userID is exists")
+	}
+
+	err = r.Database.UpdateUserID(input.ID, input.NewID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &input.NewID, nil
 }
 
 func (r *mutationResolver) CreatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error) {
-
 	performance := &model.Performance{
 		ID:          "hoge",
 		Name:        input.Name,
@@ -42,23 +69,40 @@ func (r *mutationResolver) CreatePerformance(ctx context.Context, input model.Pe
 	return performance, nil
 }
 
-func (r *mutationResolver) UpdatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error) {
+func (r *mutationResolver) UpdatePerformance(ctx context.Context, performanceID string, input model.PerformanceInput) (*model.Performance, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) DeletePerformance(ctx context.Context, input string) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) DeletePerformance(ctx context.Context, input string) (*string, error) {
+	if r.LoginUser == nil {
+		return nil, errors.New("no permission")
+	}
+
+	performance := r.Database.GetPerformance(input)
+
+	if performance.ArtistId != r.LoginUser.UID {
+		return nil, errors.New("no permission")
+	}
+
+	res := r.Database.DeletePerformance(input)
+
+	return &res, nil
 }
 
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	user := &model.User{
+	user, err := r.Database.GetUserByUserID(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.User{
 		ID:            id,
-		Name:          "hoge",
-		ImageIcon:     "huga",
+		Name:          user.Name,
+		ImageIcon:     user.IconUrl,
 		FollowArtists: []string{},
 		Performances:  []string{},
-	}
-	return user, nil
+	}, nil
 }
 
 func (r *queryResolver) Performance(ctx context.Context, id string) (*model.Performance, error) {

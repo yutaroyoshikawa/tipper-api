@@ -51,8 +51,8 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreatePerformance func(childComplexity int, input model.PerformanceInput) int
 		DeletePerformance func(childComplexity int, input string) int
-		UpdatePerformance func(childComplexity int, input model.PerformanceInput) int
-		UpdateUser        func(childComplexity int, input model.UpdateUserInput) int
+		UpdatePerformance func(childComplexity int, performanceID string, input model.PerformanceInput) int
+		UpdateUser        func(childComplexity int, userUID string, input model.UpdateUserInput) int
 		UpdateUserID      func(childComplexity int, input model.UpdateUserIDInput) int
 	}
 
@@ -86,11 +86,11 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	UpdateUser(ctx context.Context, input model.UpdateUserInput) (*model.User, error)
-	UpdateUserID(ctx context.Context, input model.UpdateUserIDInput) (string, error)
+	UpdateUser(ctx context.Context, userUID string, input model.UpdateUserInput) (*string, error)
+	UpdateUserID(ctx context.Context, input model.UpdateUserIDInput) (*string, error)
 	CreatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error)
-	UpdatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error)
-	DeletePerformance(ctx context.Context, input string) (string, error)
+	UpdatePerformance(ctx context.Context, performanceID string, input model.PerformanceInput) (*model.Performance, error)
+	DeletePerformance(ctx context.Context, input string) (*string, error)
 }
 type QueryResolver interface {
 	User(ctx context.Context, id string) (*model.User, error)
@@ -161,7 +161,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdatePerformance(childComplexity, args["input"].(model.PerformanceInput)), true
+		return e.complexity.Mutation.UpdatePerformance(childComplexity, args["performanceId"].(string), args["input"].(model.PerformanceInput)), true
 
 	case "Mutation.updateUser":
 		if e.complexity.Mutation.UpdateUser == nil {
@@ -173,7 +173,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateUser(childComplexity, args["input"].(model.UpdateUserInput)), true
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["userUid"].(string), args["input"].(model.UpdateUserInput)), true
 
 	case "Mutation.updateUserID":
 		if e.complexity.Mutation.UpdateUserID == nil {
@@ -464,11 +464,11 @@ type Query {
 }
 
 type Mutation {
-  updateUser(input: UpdateUserInput!): User!
-  updateUserID(input: UpdateUserIdInput!): ID!
-  createPerformance(input: PerformanceInput!): Performance!
-  updatePerformance(input: PerformanceInput!): Performance!
-  deletePerformance(input: ID!): ID!
+  updateUser(userUid: String!, input: UpdateUserInput!): ID
+  updateUserID(input: UpdateUserIdInput!): ID
+  createPerformance(input: PerformanceInput!): Performance
+  updatePerformance(performanceId: String!, input: PerformanceInput!): Performance
+  deletePerformance(input: ID!): ID
 }
 `, BuiltIn: false},
 }
@@ -511,15 +511,24 @@ func (ec *executionContext) field_Mutation_deletePerformance_args(ctx context.Co
 func (ec *executionContext) field_Mutation_updatePerformance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.PerformanceInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNPerformanceInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceInput(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["performanceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("performanceId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg0
+	args["performanceId"] = arg0
+	var arg1 model.PerformanceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNPerformanceInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -541,15 +550,24 @@ func (ec *executionContext) field_Mutation_updateUserID_args(ctx context.Context
 func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.UpdateUserInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["userUid"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userUid"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg0
+	args["userUid"] = arg0
+	var arg1 model.UpdateUserInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -746,21 +764,18 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateUser(rctx, args["input"].(model.UpdateUserInput))
+		return ec.resolvers.Mutation().UpdateUser(rctx, args["userUid"].(string), args["input"].(model.UpdateUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateUserID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -795,14 +810,11 @@ func (ec *executionContext) _Mutation_updateUserID(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createPerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -837,14 +849,11 @@ func (ec *executionContext) _Mutation_createPerformance(ctx context.Context, fie
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Performance)
 	fc.Result = res
-	return ec.marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
+	return ec.marshalOPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updatePerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -872,21 +881,18 @@ func (ec *executionContext) _Mutation_updatePerformance(ctx context.Context, fie
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdatePerformance(rctx, args["input"].(model.PerformanceInput))
+		return ec.resolvers.Mutation().UpdatePerformance(rctx, args["performanceId"].(string), args["input"].(model.PerformanceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Performance)
 	fc.Result = res
-	return ec.marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
+	return ec.marshalOPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deletePerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -921,14 +927,11 @@ func (ec *executionContext) _Mutation_deletePerformance(ctx context.Context, fie
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Performance_id(ctx context.Context, field graphql.CollectedField, obj *model.Performance) (ret graphql.Marshaler) {
@@ -2991,29 +2994,14 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "updateUser":
 			out.Values[i] = ec._Mutation_updateUser(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "updateUserID":
 			out.Values[i] = ec._Mutation_updateUserID(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "createPerformance":
 			out.Values[i] = ec._Mutation_createPerformance(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "updatePerformance":
 			out.Values[i] = ec._Mutation_updatePerformance(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "deletePerformance":
 			out.Values[i] = ec._Mutation_deletePerformance(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3898,6 +3886,28 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalID(*v)
+}
+
+func (ec *executionContext) marshalOPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx context.Context, sel ast.SelectionSet, v *model.Performance) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Performance(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

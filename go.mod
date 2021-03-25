@@ -11,5 +11,6 @@ require (
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
+	google.golang.org/api v0.17.0
 	google.golang.org/genproto v0.0.0-20191206224255-0243a4be9c8f
 )

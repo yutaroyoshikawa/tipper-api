@@ -71,6 +71,26 @@ func (d *Database) DeletePerformance(performanceId string) string {
 	return performanceId
 }
 
+func (d *Database) CreatePerformance(performance domain.CreatePerfomanceInput) domain.Performance {
+	docRef, _, err := d.performanceCollectionRef.Add(context.Background(), performance)
+
+	if err != nil {
+		log.Fatalf("error firestore: %v\n", err)
+	}
+
+	var registerPerformance domain.Performance
+
+	snapshot, err := docRef.Get(context.Background())
+
+	err = snapshot.DataTo(&registerPerformance)
+
+	if err != nil {
+		log.Fatalf("error firestore: %v\n", err)
+	}
+
+	return registerPerformance
+}
+
 func (d *Database) GetUserByUID(UId string) domain.User {
 	var err error
 	snapshot, err := d.userCollectionRef.Doc(UId).Get(context.Background())
@@ -90,44 +110,48 @@ func (d *Database) GetUserByUID(UId string) domain.User {
 	return user
 }
 
-func (d *Database) GetUserByUserID(userId string) domain.User {
+func (d *Database) GetUserByUserID(userId string) (*domain.User, error) {
 	iter := d.userCollectionRef.Where("id", "==", userId).Documents(context.Background())
 
-	var user domain.User
+	var user *domain.User
+
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			log.Fatalf("error firestore: %v\n", err)
+			return nil, err
 		}
 
 		err = doc.DataTo(&user)
 
 		if err != nil {
-			log.Fatalf("error firestore: %v\n", err)
+			return nil, err
 		}
-
 	}
-	return user
+
+	return user, nil
 }
 
-func (d *Database) UpdateUser(userId string, user domain.User) error {
-	iter := d.userCollectionRef.Where("id", "==", userId).Documents(context.Background())
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatalf("error firestore: %v\n", err)
-		}
+func (d *Database) UpdateUser(userUId string, user domain.UpdateUserInput) error {
+	_, err := d.userCollectionRef.Doc(userUId).Set(context.Background(), user)
 
-		_, err = doc.Ref.Set(context.Background(), user)
-		if err != nil {
-			log.Fatalf("error firestore: %v\n", err)
-		}
+	if err != err {
+		return err
 	}
+
+	return nil
+}
+
+func (d *Database) UpdateUserID(UId string, newId string) error {
+	_, err := d.userCollectionRef.Doc(UId).Set(context.Background(), map[string]string{
+		"id": newId,
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

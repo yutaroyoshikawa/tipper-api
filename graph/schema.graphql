@@ -63,9 +63,9 @@ type Query {
 }
 
 type Mutation {
-  updateUser(input: UpdateUserInput!): User!
-  updateUserID(input: UpdateUserIdInput!): ID!
-  createPerformance(input: PerformanceInput!): Performance!
-  updatePerformance(input: PerformanceInput!): Performance!
-  deletePerformance(input: ID!): ID!
+  updateUser(userUid: String!, input: UpdateUserInput!): ID
+  updateUserID(input: UpdateUserIdInput!): ID
+  createPerformance(input: PerformanceInput!): Performance
+  updatePerformance(performanceId: String!, input: PerformanceInput!): Performance
+  deletePerformance(input: ID!): ID
 }

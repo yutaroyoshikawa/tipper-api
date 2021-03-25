@@ -42,3 +42,24 @@ type User struct {
 	Id       string `json:"id"`
 	Name     string `json:"name"`
 }
+
+type UpdateUserInput struct {
+	Email   *string `json:"email"`
+	IconUrl *string `json:"iconUrl"`
+	Name    *string `json:"name"`
+}
+
+type CreatePerfomanceInput struct {
+	ArtistId     string         `json:"artistId"`
+	Discription  string         `json:"discription"`
+	Finish       *time.Time     `json:"finish"`
+	GeoLocate    *latlng.LatLng `json:"geoLocate"`
+	Name         string         `json:"name"`
+	PlaceId      string         `json:"placeId"`
+	PlaceName    string         `json:"placeName"`
+	PostalCode   string         `json:"postalCode"`
+	Start        *time.Time     `json:"start"`
+	Thumbnail    string         `json:"thumbnail"`
+	Tipping      []*Tipping     `json:"tipping"`
+	TippingToken string         `json:"tippingToken"`
+}
