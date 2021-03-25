@@ -7,11 +7,13 @@ import (
 	firestore "cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
 	"github.com/yutaroyoshikawa/tipper-api/domain"
+	"google.golang.org/api/iterator"
 )
 
 type Database struct {
 	Firestore                *firestore.Client
 	performanceCollectionRef *firestore.CollectionRef
+	userCollectionRef        *firestore.CollectionRef
 }
 
 func NewDatabase(firebase *firebase.App) *Database {
@@ -25,6 +27,7 @@ func NewDatabase(firebase *firebase.App) *Database {
 
 	f.Firestore = client
 	f.performanceCollectionRef = client.Collection("performances")
+	f.userCollectionRef = client.Collection("users")
 
 	return f
 }
@@ -68,9 +71,9 @@ func (d *Database) DeletePerformance(performanceId string) string {
 	return performanceId
 }
 
-func (d *Database) GetUserByUID(userId string) domain.User {
+func (d *Database) GetUserByUID(UId string) domain.User {
 	var err error
-	snapshot, err := d.Firestore.Collection("users").Doc(userId).Get(context.Background())
+	snapshot, err := d.userCollectionRef.Doc(UId).Get(context.Background())
 
 	if err != nil {
 		log.Fatalf("error firestore: %v\n", err)
@@ -85,4 +88,46 @@ func (d *Database) GetUserByUID(userId string) domain.User {
 	}
 
 	return user
+}
+
+func (d *Database) GetUserByUserID(userId string) domain.User {
+	iter := d.userCollectionRef.Where("id", "==", userId).Documents(context.Background())
+
+	var user domain.User
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatalf("error firestore: %v\n", err)
+		}
+
+		err = doc.DataTo(&user)
+
+		if err != nil {
+			log.Fatalf("error firestore: %v\n", err)
+		}
+
+	}
+	return user
+}
+
+func (d *Database) UpdateUser(userId string, user domain.User) error {
+	iter := d.userCollectionRef.Where("id", "==", userId).Documents(context.Background())
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatalf("error firestore: %v\n", err)
+		}
+
+		_, err = doc.Ref.Set(context.Background(), user)
+		if err != nil {
+			log.Fatalf("error firestore: %v\n", err)
+		}
+	}
+	return nil
 }
