@@ -5,28 +5,26 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/yutaroyoshikawa/tipper-api/graph/generated"
 	"github.com/yutaroyoshikawa/tipper-api/graph/model"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	user := &model.User{
-		ID:            "hoge",
-		UserType:      model.UserTypeUser,
-		Name:          input.Name,
-		ImageIcon:     *input.ImageIcon,
-		FollowArtists: []string{},
-		Performances:  []string{},
-	}
-	return user, nil
+func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUserInput) (*model.User, error) {
+
 }
 
-func (r *mutationResolver) CreatePerformance(ctx context.Context, input *model.NewPerformance) (*model.Performance, error) {
+func (r *mutationResolver) UpdateUserID(ctx context.Context, input model.UpdateUserIDInput) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) CreatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error) {
+
 	performance := &model.Performance{
 		ID:          "hoge",
 		Name:        input.Name,
-		Description: input.Description,
+		Discription: input.Discription,
 		Start:       input.Start,
 		Finish:      input.Finish,
 		Tags:        input.Tags,
@@ -35,21 +33,26 @@ func (r *mutationResolver) CreatePerformance(ctx context.Context, input *model.N
 		Address:     input.Address,
 		Artist: &model.User{
 			ID:            "hoge",
-			UserType:      model.UserTypeUser,
 			Name:          "hoge",
 			ImageIcon:     "huga",
 			FollowArtists: []string{},
 			Performances:  []string{},
 		},
-		Comments: []*model.Comment{},
 	}
 	return performance, nil
 }
 
-func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, error) {
+func (r *mutationResolver) UpdatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeletePerformance(ctx context.Context, input string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
 	user := &model.User{
-		ID:            *id,
-		UserType:      model.UserTypeUser,
+		ID:            id,
 		Name:          "hoge",
 		ImageIcon:     "huga",
 		FollowArtists: []string{},
@@ -58,33 +61,35 @@ func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, erro
 	return user, nil
 }
 
-func (r *queryResolver) Performance(ctx context.Context, id *string) (*model.Performance, error) {
-	thumbnail := "hoge"
+func (r *queryResolver) Performance(ctx context.Context, id string) (*model.Performance, error) {
+	performance := r.Database.GetPerformance(id)
+	artist := r.Database.GetUserByUID(performance.ArtistId)
 
-	performance := &model.Performance{
-		ID:          *id,
-		Name:        "hoge",
-		Description: "huga",
-		Start:       "hoge",
-		Finish:      "huga",
+	return &model.Performance{
+		ID:          id,
+		Name:        performance.Name,
+		Discription: performance.Discription,
+		Start:       performance.Start.String(),
+		Finish:      performance.Finish.String(),
 		Tags:        []string{},
-		Thumbnail:   &thumbnail,
+		Thumbnail:   &performance.Thumbnail,
 		Location: &model.Locate{
-			Lat: 0.0,
-			Lng: 0.0,
+			Lat: performance.GeoLocate.GetLatitude(),
+			Lng: performance.GeoLocate.GetLongitude(),
 		},
-		Address: "hoge",
+		Address: performance.PlaceName,
 		Artist: &model.User{
-			ID:            *id,
-			UserType:      model.UserTypeUser,
-			Name:          "hoge",
-			ImageIcon:     "huga",
+			ID:            artist.Id,
+			Name:          artist.Name,
+			ImageIcon:     artist.IconUrl,
 			FollowArtists: []string{},
 			Performances:  []string{},
 		},
-		Comments: []*model.Comment{},
-	}
-	return performance, nil
+	}, nil
+}
+
+func (r *queryResolver) NearByPerformance(ctx context.Context, locate model.LocateInput) ([]*model.Performance, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

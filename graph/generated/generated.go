@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -42,27 +43,23 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	Comment struct {
-		CreatedAt func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
-		User      func(childComplexity int) int
-	}
-
 	Locate struct {
 		Lat func(childComplexity int) int
 		Lng func(childComplexity int) int
 	}
 
 	Mutation struct {
-		CreatePerformance func(childComplexity int, input *model.NewPerformance) int
-		CreateUser        func(childComplexity int, input model.NewUser) int
+		CreatePerformance func(childComplexity int, input model.PerformanceInput) int
+		DeletePerformance func(childComplexity int, input string) int
+		UpdatePerformance func(childComplexity int, input model.PerformanceInput) int
+		UpdateUser        func(childComplexity int, input model.UpdateUserInput) int
+		UpdateUserID      func(childComplexity int, input model.UpdateUserIDInput) int
 	}
 
 	Performance struct {
 		Address     func(childComplexity int) int
 		Artist      func(childComplexity int) int
-		Comments    func(childComplexity int) int
-		Description func(childComplexity int) int
+		Discription func(childComplexity int) int
 		Finish      func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Location    func(childComplexity int) int
@@ -73,8 +70,9 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Performance func(childComplexity int, id *string) int
-		User        func(childComplexity int, id *string) int
+		NearByPerformance func(childComplexity int, locate model.LocateInput) int
+		Performance       func(childComplexity int, id string) int
+		User              func(childComplexity int, id string) int
 	}
 
 	User struct {
@@ -83,17 +81,21 @@ type ComplexityRoot struct {
 		ImageIcon     func(childComplexity int) int
 		Name          func(childComplexity int) int
 		Performances  func(childComplexity int) int
-		UserType      func(childComplexity int) int
+		Thumbnail     func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	CreateUser(ctx context.Context, input model.NewUser) (*model.User, error)
-	CreatePerformance(ctx context.Context, input *model.NewPerformance) (*model.Performance, error)
+	UpdateUser(ctx context.Context, input model.UpdateUserInput) (*model.User, error)
+	UpdateUserID(ctx context.Context, input model.UpdateUserIDInput) (string, error)
+	CreatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error)
+	UpdatePerformance(ctx context.Context, input model.PerformanceInput) (*model.Performance, error)
+	DeletePerformance(ctx context.Context, input string) (string, error)
 }
 type QueryResolver interface {
-	User(ctx context.Context, id *string) (*model.User, error)
-	Performance(ctx context.Context, id *string) (*model.Performance, error)
+	User(ctx context.Context, id string) (*model.User, error)
+	Performance(ctx context.Context, id string) (*model.Performance, error)
+	NearByPerformance(ctx context.Context, locate model.LocateInput) ([]*model.Performance, error)
 }
 
 type executableSchema struct {
@@ -110,27 +112,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
-
-	case "Comment.createdAt":
-		if e.complexity.Comment.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.Comment.CreatedAt(childComplexity), true
-
-	case "Comment.updatedAt":
-		if e.complexity.Comment.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.Comment.UpdatedAt(childComplexity), true
-
-	case "Comment.user":
-		if e.complexity.Comment.User == nil {
-			break
-		}
-
-		return e.complexity.Comment.User(childComplexity), true
 
 	case "Locate.lat":
 		if e.complexity.Locate.Lat == nil {
@@ -156,19 +137,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePerformance(childComplexity, args["input"].(*model.NewPerformance)), true
+		return e.complexity.Mutation.CreatePerformance(childComplexity, args["input"].(model.PerformanceInput)), true
 
-	case "Mutation.createUser":
-		if e.complexity.Mutation.CreateUser == nil {
+	case "Mutation.deletePerformance":
+		if e.complexity.Mutation.DeletePerformance == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_createUser_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_deletePerformance_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.NewUser)), true
+		return e.complexity.Mutation.DeletePerformance(childComplexity, args["input"].(string)), true
+
+	case "Mutation.updatePerformance":
+		if e.complexity.Mutation.UpdatePerformance == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updatePerformance_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdatePerformance(childComplexity, args["input"].(model.PerformanceInput)), true
+
+	case "Mutation.updateUser":
+		if e.complexity.Mutation.UpdateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["input"].(model.UpdateUserInput)), true
+
+	case "Mutation.updateUserID":
+		if e.complexity.Mutation.UpdateUserID == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateUserID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateUserID(childComplexity, args["input"].(model.UpdateUserIDInput)), true
 
 	case "Performance.address":
 		if e.complexity.Performance.Address == nil {
@@ -184,19 +201,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Performance.Artist(childComplexity), true
 
-	case "Performance.comments":
-		if e.complexity.Performance.Comments == nil {
+	case "Performance.discription":
+		if e.complexity.Performance.Discription == nil {
 			break
 		}
 
-		return e.complexity.Performance.Comments(childComplexity), true
-
-	case "Performance.description":
-		if e.complexity.Performance.Description == nil {
-			break
-		}
-
-		return e.complexity.Performance.Description(childComplexity), true
+		return e.complexity.Performance.Discription(childComplexity), true
 
 	case "Performance.finish":
 		if e.complexity.Performance.Finish == nil {
@@ -247,6 +257,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Performance.Thumbnail(childComplexity), true
 
+	case "Query.nearByPerformance":
+		if e.complexity.Query.NearByPerformance == nil {
+			break
+		}
+
+		args, err := ec.field_Query_nearByPerformance_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.NearByPerformance(childComplexity, args["locate"].(model.LocateInput)), true
+
 	case "Query.performance":
 		if e.complexity.Query.Performance == nil {
 			break
@@ -257,7 +279,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Performance(childComplexity, args["id"].(*string)), true
+		return e.complexity.Query.Performance(childComplexity, args["id"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -269,7 +291,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.User(childComplexity, args["id"].(*string)), true
+		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
 
 	case "User.followArtists":
 		if e.complexity.User.FollowArtists == nil {
@@ -306,12 +328,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Performances(childComplexity), true
 
-	case "User.userType":
-		if e.complexity.User.UserType == nil {
+	case "User.thumbnail":
+		if e.complexity.User.Thumbnail == nil {
 			break
 		}
 
-		return e.complexity.User.UserType(childComplexity), true
+		return e.complexity.User.Thumbnail(childComplexity), true
 
 	}
 	return 0, false
@@ -377,28 +399,17 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/schema.graphqls", Input: `# GraphQL schema example
+	{Name: "graph/schema.graphql", Input: `# GraphQL schema example
 #
 # https://gqlgen.com/getting-started/
 
-enum UserType {
-  User
-  Artist
-}
-
 type User {
   id: ID!
-  userType: UserType!
   name: String!
   imageIcon: String!
+  thumbnail: String!
   followArtists: [String!]
   performances: [String!]
-}
-
-type Comment {
-  user: User!
-  createdAt: String!
-  updatedAt: String!
 }
 
 type Locate {
@@ -409,7 +420,7 @@ type Locate {
 type Performance {
   id: ID!
   name: String!
-  description: String!
+  discription: String!
   start: String!
   tags: [String!]!
   finish: String!
@@ -417,12 +428,17 @@ type Performance {
   location: Locate!
   address: String!
   artist: User!
-  comments: [Comment!]!
-}              
+}
 
-input NewUser {
-  name: String!
+input UpdateUserInput {
+  id: ID!
+  name: String
   imageIcon: String
+}
+
+input UpdateUserIdInput {
+  id: ID!
+  newID: ID!
 }
 
 input LocateInput {
@@ -430,9 +446,9 @@ input LocateInput {
   lng: Float!
 }
 
-input NewPerformance {
+input PerformanceInput {
   name: String!
-  description: String!
+  discription: String!
   start: String!
   finish: String!
   thumbnail: String
@@ -442,13 +458,17 @@ input NewPerformance {
 }
 
 type Query {
-  user(id: ID): User
-  performance(id: ID): Performance
+  user(id: ID!): User!
+  performance(id: ID!): Performance!
+  nearByPerformance(locate: LocateInput!): [Performance!]!
 }
 
 type Mutation {
-  createUser(input: NewUser!): User!
-  createPerformance(input: NewPerformance): Performance!
+  updateUser(input: UpdateUserInput!): User!
+  updateUserID(input: UpdateUserIdInput!): ID!
+  createPerformance(input: PerformanceInput!): Performance!
+  updatePerformance(input: PerformanceInput!): Performance!
+  deletePerformance(input: ID!): ID!
 }
 `, BuiltIn: false},
 }
@@ -461,10 +481,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createPerformance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.NewPerformance
+	var arg0 model.PerformanceInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalONewPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐNewPerformance(ctx, tmp)
+		arg0, err = ec.unmarshalNPerformanceInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -473,13 +493,58 @@ func (ec *executionContext) field_Mutation_createPerformance_args(ctx context.Co
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_deletePerformance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.NewUser
+	var arg0 string
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewUser2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐNewUser(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updatePerformance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.PerformanceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNPerformanceInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateUserID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateUserIDInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateUserIdInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUpdateUserIDInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateUserInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -503,13 +568,28 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_nearByPerformance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.LocateInput
+	if tmp, ok := rawArgs["locate"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("locate"))
+		arg0, err = ec.unmarshalNLocateInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐLocateInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["locate"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_performance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -521,10 +601,10 @@ func (ec *executionContext) field_Query_performance_args(ctx context.Context, ra
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -570,111 +650,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
-
-func (ec *executionContext) _Comment_user(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Comment",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.User)
-	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Comment_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Comment",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Comment_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Comment",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
 
 func (ec *executionContext) _Locate_lat(ctx context.Context, field graphql.CollectedField, obj *model.Locate) (ret graphql.Marshaler) {
 	defer func() {
@@ -746,7 +721,7 @@ func (ec *executionContext) _Locate_lng(ctx context.Context, field graphql.Colle
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -763,7 +738,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createUser_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_updateUser_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -771,7 +746,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(model.NewUser))
+		return ec.resolvers.Mutation().UpdateUser(rctx, args["input"].(model.UpdateUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -786,6 +761,48 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateUserID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateUserID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateUserID(rctx, args["input"].(model.UpdateUserIDInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createPerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -813,7 +830,7 @@ func (ec *executionContext) _Mutation_createPerformance(ctx context.Context, fie
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreatePerformance(rctx, args["input"].(*model.NewPerformance))
+		return ec.resolvers.Mutation().CreatePerformance(rctx, args["input"].(model.PerformanceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -828,6 +845,90 @@ func (ec *executionContext) _Mutation_createPerformance(ctx context.Context, fie
 	res := resTmp.(*model.Performance)
 	fc.Result = res
 	return ec.marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updatePerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updatePerformance_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdatePerformance(rctx, args["input"].(model.PerformanceInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Performance)
+	fc.Result = res
+	return ec.marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deletePerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deletePerformance_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeletePerformance(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Performance_id(ctx context.Context, field graphql.CollectedField, obj *model.Performance) (ret graphql.Marshaler) {
@@ -900,7 +1001,7 @@ func (ec *executionContext) _Performance_name(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Performance_description(ctx context.Context, field graphql.CollectedField, obj *model.Performance) (ret graphql.Marshaler) {
+func (ec *executionContext) _Performance_discription(ctx context.Context, field graphql.CollectedField, obj *model.Performance) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -918,7 +1019,7 @@ func (ec *executionContext) _Performance_description(ctx context.Context, field 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
+		return obj.Discription, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1177,41 +1278,6 @@ func (ec *executionContext) _Performance_artist(ctx context.Context, field graph
 	return ec.marshalNUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Performance_comments(ctx context.Context, field graphql.CollectedField, obj *model.Performance) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Performance",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Comments, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Comment)
-	fc.Result = res
-	return ec.marshalNComment2ᚕᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐCommentᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1237,18 +1303,21 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, args["id"].(*string))
+		return ec.resolvers.Query().User(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_performance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1276,18 +1345,63 @@ func (ec *executionContext) _Query_performance(ctx context.Context, field graphq
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Performance(rctx, args["id"].(*string))
+		return ec.resolvers.Query().Performance(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Performance)
 	fc.Result = res
-	return ec.marshalOPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
+	return ec.marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_nearByPerformance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_nearByPerformance_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().NearByPerformance(rctx, args["locate"].(model.LocateInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Performance)
+	fc.Result = res
+	return ec.marshalNPerformance2ᚕᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1396,41 +1510,6 @@ func (ec *executionContext) _User_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_userType(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UserType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.UserType)
-	fc.Result = res
-	return ec.marshalNUserType2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUserType(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1485,6 +1564,41 @@ func (ec *executionContext) _User_imageIcon(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ImageIcon, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_thumbnail(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Thumbnail, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2680,8 +2794,8 @@ func (ec *executionContext) unmarshalInputLocateInput(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewPerformance(ctx context.Context, obj interface{}) (model.NewPerformance, error) {
-	var it model.NewPerformance
+func (ec *executionContext) unmarshalInputPerformanceInput(ctx context.Context, obj interface{}) (model.PerformanceInput, error) {
+	var it model.PerformanceInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -2694,11 +2808,11 @@ func (ec *executionContext) unmarshalInputNewPerformance(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "description":
+		case "discription":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discription"))
+			it.Discription, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2756,17 +2870,53 @@ func (ec *executionContext) unmarshalInputNewPerformance(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj interface{}) (model.NewUser, error) {
-	var it model.NewUser
+func (ec *executionContext) unmarshalInputUpdateUserIdInput(ctx context.Context, obj interface{}) (model.UpdateUserIDInput, error) {
+	var it model.UpdateUserIDInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "newID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newID"))
+			it.NewID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, obj interface{}) (model.UpdateUserInput, error) {
+	var it model.UpdateUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "name":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2791,43 +2941,6 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
-
-var commentImplementors = []string{"Comment"}
-
-func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, obj *model.Comment) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, commentImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Comment")
-		case "user":
-			out.Values[i] = ec._Comment_user(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "createdAt":
-			out.Values[i] = ec._Comment_createdAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "updatedAt":
-			out.Values[i] = ec._Comment_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
 
 var locateImplementors = []string{"Locate"}
 
@@ -2876,13 +2989,28 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createUser":
-			out.Values[i] = ec._Mutation_createUser(ctx, field)
+		case "updateUser":
+			out.Values[i] = ec._Mutation_updateUser(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateUserID":
+			out.Values[i] = ec._Mutation_updateUserID(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "createPerformance":
 			out.Values[i] = ec._Mutation_createPerformance(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updatePerformance":
+			out.Values[i] = ec._Mutation_updatePerformance(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deletePerformance":
+			out.Values[i] = ec._Mutation_deletePerformance(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2918,8 +3046,8 @@ func (ec *executionContext) _Performance(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "description":
-			out.Values[i] = ec._Performance_description(ctx, field, obj)
+		case "discription":
+			out.Values[i] = ec._Performance_discription(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2952,11 +3080,6 @@ func (ec *executionContext) _Performance(ctx context.Context, sel ast.SelectionS
 			}
 		case "artist":
 			out.Values[i] = ec._Performance_artist(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "comments":
-			out.Values[i] = ec._Performance_comments(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2995,6 +3118,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_user(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "performance":
@@ -3006,6 +3132,23 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_performance(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "nearByPerformance":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_nearByPerformance(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "__type":
@@ -3039,11 +3182,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "userType":
-			out.Values[i] = ec._User_userType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "name":
 			out.Values[i] = ec._User_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3051,6 +3189,11 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "imageIcon":
 			out.Values[i] = ec._User_imageIcon(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "thumbnail":
+			out.Values[i] = ec._User_thumbnail(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3329,53 +3472,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNComment2ᚕᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐCommentᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Comment) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNComment2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐComment(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNComment2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐComment(ctx context.Context, sel ast.SelectionSet, v *model.Comment) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Comment(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3416,18 +3512,55 @@ func (ec *executionContext) marshalNLocate2ᚖgithubᚗcomᚋyutaroyoshikawaᚋt
 	return ec._Locate(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNLocateInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐLocateInput(ctx context.Context, v interface{}) (model.LocateInput, error) {
+	res, err := ec.unmarshalInputLocateInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNLocateInput2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐLocateInput(ctx context.Context, v interface{}) (*model.LocateInput, error) {
 	res, err := ec.unmarshalInputLocateInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewUser2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐNewUser(ctx context.Context, v interface{}) (model.NewUser, error) {
-	res, err := ec.unmarshalInputNewUser(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalNPerformance2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx context.Context, sel ast.SelectionSet, v model.Performance) graphql.Marshaler {
 	return ec._Performance(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPerformance2ᚕᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Performance) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx context.Context, sel ast.SelectionSet, v *model.Performance) graphql.Marshaler {
@@ -3438,6 +3571,11 @@ func (ec *executionContext) marshalNPerformance2ᚖgithubᚗcomᚋyutaroyoshikaw
 		return graphql.Null
 	}
 	return ec._Performance(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPerformanceInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformanceInput(ctx context.Context, v interface{}) (model.PerformanceInput, error) {
+	res, err := ec.unmarshalInputPerformanceInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -3485,6 +3623,16 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
+func (ec *executionContext) unmarshalNUpdateUserIdInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUpdateUserIDInput(ctx context.Context, v interface{}) (model.UpdateUserIDInput, error) {
+	res, err := ec.unmarshalInputUpdateUserIdInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUpdateUserInput(ctx context.Context, v interface{}) (model.UpdateUserInput, error) {
+	res, err := ec.unmarshalInputUpdateUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNUser2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
@@ -3497,16 +3645,6 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtip
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNUserType2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUserType(ctx context.Context, v interface{}) (model.UserType, error) {
-	var res model.UserType
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNUserType2githubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUserType(ctx context.Context, sel ast.SelectionSet, v model.UserType) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -3762,36 +3900,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalID(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalID(*v)
-}
-
-func (ec *executionContext) unmarshalONewPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐNewPerformance(ctx context.Context, v interface{}) (*model.NewPerformance, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputNewPerformance(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOPerformance2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐPerformance(ctx context.Context, sel ast.SelectionSet, v *model.Performance) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Performance(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3850,13 +3958,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋyutaroyoshikawaᚋtipperᚑapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

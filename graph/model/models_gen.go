@@ -2,18 +2,6 @@
 
 package model
 
-import (
-	"fmt"
-	"io"
-	"strconv"
-)
-
-type Comment struct {
-	User      *User  `json:"user"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
-}
-
 type Locate struct {
 	Lat float64 `json:"lat"`
 	Lng float64 `json:"lng"`
@@ -24,9 +12,22 @@ type LocateInput struct {
 	Lng float64 `json:"lng"`
 }
 
-type NewPerformance struct {
+type Performance struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Discription string   `json:"discription"`
+	Start       string   `json:"start"`
+	Tags        []string `json:"tags"`
+	Finish      string   `json:"finish"`
+	Thumbnail   *string  `json:"thumbnail"`
+	Location    *Locate  `json:"location"`
+	Address     string   `json:"address"`
+	Artist      *User    `json:"artist"`
+}
+
+type PerformanceInput struct {
 	Name        string       `json:"name"`
-	Description string       `json:"description"`
+	Discription string       `json:"discription"`
 	Start       string       `json:"start"`
 	Finish      string       `json:"finish"`
 	Thumbnail   *string      `json:"thumbnail"`
@@ -35,71 +36,22 @@ type NewPerformance struct {
 	Tags        []string     `json:"tags"`
 }
 
-type NewUser struct {
-	Name      string  `json:"name"`
-	ImageIcon *string `json:"imageIcon"`
+type UpdateUserIDInput struct {
+	ID    string `json:"id"`
+	NewID string `json:"newID"`
 }
 
-type Performance struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Start       string     `json:"start"`
-	Tags        []string   `json:"tags"`
-	Finish      string     `json:"finish"`
-	Thumbnail   *string    `json:"thumbnail"`
-	Location    *Locate    `json:"location"`
-	Address     string     `json:"address"`
-	Artist      *User      `json:"artist"`
-	Comments    []*Comment `json:"comments"`
+type UpdateUserInput struct {
+	ID        string  `json:"id"`
+	Name      *string `json:"name"`
+	ImageIcon *string `json:"imageIcon"`
 }
 
 type User struct {
 	ID            string   `json:"id"`
-	UserType      UserType `json:"userType"`
 	Name          string   `json:"name"`
 	ImageIcon     string   `json:"imageIcon"`
+	Thumbnail     string   `json:"thumbnail"`
 	FollowArtists []string `json:"followArtists"`
 	Performances  []string `json:"performances"`
-}
-
-type UserType string
-
-const (
-	UserTypeUser   UserType = "User"
-	UserTypeArtist UserType = "Artist"
-)
-
-var AllUserType = []UserType{
-	UserTypeUser,
-	UserTypeArtist,
-}
-
-func (e UserType) IsValid() bool {
-	switch e {
-	case UserTypeUser, UserTypeArtist:
-		return true
-	}
-	return false
-}
-
-func (e UserType) String() string {
-	return string(e)
-}
-
-func (e *UserType) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = UserType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid UserType", str)
-	}
-	return nil
-}
-
-func (e UserType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
 }

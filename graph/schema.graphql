@@ -2,24 +2,13 @@
 #
 # https://gqlgen.com/getting-started/
 
-enum UserType {
-  User
-  Artist
-}
-
 type User {
   id: ID!
-  userType: UserType!
   name: String!
   imageIcon: String!
+  thumbnail: String!
   followArtists: [String!]
   performances: [String!]
-}
-
-type Comment {
-  user: User!
-  createdAt: String!
-  updatedAt: String!
 }
 
 type Locate {
@@ -30,7 +19,7 @@ type Locate {
 type Performance {
   id: ID!
   name: String!
-  description: String!
+  discription: String!
   start: String!
   tags: [String!]!
   finish: String!
@@ -38,12 +27,17 @@ type Performance {
   location: Locate!
   address: String!
   artist: User!
-  comments: [Comment!]!
-}              
+}
 
-input NewUser {
-  name: String!
+input UpdateUserInput {
+  id: ID!
+  name: String
   imageIcon: String
+}
+
+input UpdateUserIdInput {
+  id: ID!
+  newID: ID!
 }
 
 input LocateInput {
@@ -51,9 +45,9 @@ input LocateInput {
   lng: Float!
 }
 
-input NewPerformance {
+input PerformanceInput {
   name: String!
-  description: String!
+  discription: String!
   start: String!
   finish: String!
   thumbnail: String
@@ -63,11 +57,15 @@ input NewPerformance {
 }
 
 type Query {
-  user(id: ID): User
-  performance(id: ID): Performance
+  user(id: ID!): User!
+  performance(id: ID!): Performance!
+  nearByPerformance(locate: LocateInput!): [Performance!]!
 }
 
 type Mutation {
-  createUser(input: NewUser!): User!
-  createPerformance(input: NewPerformance): Performance!
+  updateUser(input: UpdateUserInput!): User!
+  updateUserID(input: UpdateUserIdInput!): ID!
+  createPerformance(input: PerformanceInput!): Performance!
+  updatePerformance(input: PerformanceInput!): Performance!
+  deletePerformance(input: ID!): ID!
 }

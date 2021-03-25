@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"firebase.google.com/go/v4/auth"
@@ -41,14 +40,14 @@ func main() {
 	graphql.Use(tipperMiddleware.KeyAuth(firebaseApp))
 
 	graphql.POST("", func(c echo.Context) error {
-		token := c.Get("token")
-		if token != nil {
-			log.Println(token.(*auth.Token))
+		resolverConfig := &graph.Resolver{
+			Database: infrastructure.NewDatabase(firebaseApp),
+		}
+		if c.Get("token") != nil {
+			resolverConfig.LoginUser = c.Get("token").(*auth.Token)
 		}
 		config := generated.Config{
-			Resolvers: &graph.Resolver{
-				Database: infrastructure.NewDatabase(firebaseApp),
-			},
+			Resolvers: resolverConfig,
 		}
 		graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(config))
 		graphqlHandler.ServeHTTP(c.Response(), c.Request())
