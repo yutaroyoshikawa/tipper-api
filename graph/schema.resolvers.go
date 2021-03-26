@@ -78,15 +78,23 @@ func (r *mutationResolver) DeletePerformance(ctx context.Context, input string) 
 		return nil, errors.New("no permission")
 	}
 
-	performance := r.Database.GetPerformance(input)
+	performance, err := r.Database.GetPerformance(input)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if performance.ArtistId != r.LoginUser.UID {
 		return nil, errors.New("no permission")
 	}
 
-	res := r.Database.DeletePerformance(input)
+	err = r.Database.DeletePerformance(input)
 
-	return &res, nil
+	if err != nil {
+		return nil, err
+	}
+
+	return &input, nil
 }
 
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
@@ -106,8 +114,17 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 }
 
 func (r *queryResolver) Performance(ctx context.Context, id string) (*model.Performance, error) {
-	performance := r.Database.GetPerformance(id)
-	artist := r.Database.GetUserByUID(performance.ArtistId)
+	performance, err := r.Database.GetPerformance(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	artist, err := r.Database.GetUserByUID(performance.ArtistId)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &model.Performance{
 		ID:          id,

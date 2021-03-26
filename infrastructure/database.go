@@ -32,22 +32,21 @@ func NewDatabase(firebase *firebase.App) *Database {
 	return f
 }
 
-func (d *Database) UpdatePerformance(performanceId string, performance domain.Performance) domain.Performance {
+func (d *Database) UpdatePerformance(performanceId string, performance domain.Performance) error {
 	_, err := d.performanceCollectionRef.Doc(performanceId).Set(context.Background(), performance)
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return err
 	}
 
-	return performance
+	return nil
 }
 
-func (d *Database) GetPerformance(performanceId string) domain.Performance {
-	var err error
+func (d *Database) GetPerformance(performanceId string) (*domain.Performance, error) {
 	snapshot, err := d.performanceCollectionRef.Doc(performanceId).Get(context.Background())
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return nil, err
 	}
 
 	var performance domain.Performance
@@ -55,27 +54,27 @@ func (d *Database) GetPerformance(performanceId string) domain.Performance {
 	err = snapshot.DataTo(&performance)
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return nil, err
 	}
 
-	return performance
+	return &performance, nil
 }
 
-func (d *Database) DeletePerformance(performanceId string) string {
+func (d *Database) DeletePerformance(performanceId string) error {
 	_, err := d.performanceCollectionRef.Doc(performanceId).Delete(context.Background())
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return err
 	}
 
-	return performanceId
+	return nil
 }
 
-func (d *Database) CreatePerformance(performance domain.CreatePerfomanceInput) domain.Performance {
+func (d *Database) CreatePerformance(performance domain.CreatePerfomanceInput) (*domain.Performance, error) {
 	docRef, _, err := d.performanceCollectionRef.Add(context.Background(), performance)
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return nil, err
 	}
 
 	var registerPerformance domain.Performance
@@ -85,18 +84,18 @@ func (d *Database) CreatePerformance(performance domain.CreatePerfomanceInput) d
 	err = snapshot.DataTo(&registerPerformance)
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return nil, err
 	}
 
-	return registerPerformance
+	return &registerPerformance, nil
 }
 
-func (d *Database) GetUserByUID(UId string) domain.User {
+func (d *Database) GetUserByUID(UId string) (*domain.User, error) {
 	var err error
 	snapshot, err := d.userCollectionRef.Doc(UId).Get(context.Background())
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return nil, err
 	}
 
 	var user domain.User
@@ -104,10 +103,10 @@ func (d *Database) GetUserByUID(UId string) domain.User {
 	err = snapshot.DataTo(&user)
 
 	if err != nil {
-		log.Fatalf("error firestore: %v\n", err)
+		return nil, err
 	}
 
-	return user
+	return &user, nil
 }
 
 func (d *Database) GetUserByUserID(userId string) (*domain.User, error) {
